@@ -26,21 +26,24 @@ import spray.httpx.{ ResponseTransformation, RequestBuilding }
 import spray.can.Http
 import spray.util.actorSystem
 import spray.http._
+import spray.can.client.DeadlinedRequest
 
 object pipelining extends RequestBuilding with ResponseTransformation {
   type SendReceive = HttpRequest ⇒ Future[HttpResponse]
 
   def sendReceive(implicit refFactory: ActorRefFactory, executionContext: ExecutionContext,
-                  futureTimeout: Timeout = 60.seconds): SendReceive =
+                  futureTimeout: Timeout): SendReceive =
     sendReceive(IO(Http)(actorSystem))
 
   def sendReceive(transport: ActorRef)(implicit ec: ExecutionContext, futureTimeout: Timeout): SendReceive =
-    request ⇒ transport ? request map {
-      case x: HttpResponse          ⇒ x
-      case x: HttpResponsePart      ⇒ sys.error("sendReceive doesn't support chunked responses, try sendTo instead")
-      case x: Http.ConnectionClosed ⇒ sys.error("Connection closed before reception of response: " + x)
-      case x                        ⇒ sys.error("Unexpected response from HTTP transport: " + x)
-    }
+    request ⇒ transport ? DeadlinedRequest(request, futureTimeout.duration.fromNow) map handleRequestCompletion
+
+  def handleRequestCompletion(received: Any): HttpResponse = received match {
+    case x: HttpResponse          ⇒ x
+    case x: HttpResponsePart      ⇒ sys.error("sendReceive doesn't support chunked responses, try sendTo instead")
+    case x: Http.ConnectionClosed ⇒ sys.error("Connection closed before reception of response: " + x)
+    case x                        ⇒ sys.error("Unexpected response from HTTP transport: " + x)
+  }
 
   def sendTo(transport: ActorRef) = new SendTo(transport)
 

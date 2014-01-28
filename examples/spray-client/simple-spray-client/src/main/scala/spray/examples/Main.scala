@@ -11,6 +11,8 @@ import spray.can.Http
 import spray.httpx.SprayJsonSupport
 import spray.client.pipelining._
 import spray.util._
+import scala.concurrent.duration._
+import akka.util.Timeout
 
 case class Elevation(location: Location, elevation: Double)
 case class Location(lat: Double, lng: Double)
@@ -32,6 +34,7 @@ object Main extends App {
 
   import ElevationJsonProtocol._
   import SprayJsonSupport._
+  implicit val timeout:Timeout = 60.seconds
   val pipeline = sendReceive ~> unmarshal[GoogleApiResult[Elevation]]
 
   val responseFuture = pipeline {

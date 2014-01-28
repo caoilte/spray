@@ -10,7 +10,7 @@ import com.typesafe.sbt.osgi.SbtOsgi
 import SbtOsgi._
 
 object BuildSettings {
-  val VERSION = "1.3.1-CPS-2"
+  val VERSION = "1.3.1-CPS-5"
 
   val artifactoryHost = scala.util.Properties.envOrNone("ARTIFACTORY_HOST") getOrElse("")
   val artifactoryPort = scala.util.Properties.envOrNone("ARTIFACTORY_PORT") getOrElse("")
