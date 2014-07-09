@@ -10,7 +10,13 @@ import com.typesafe.sbt.osgi.SbtOsgi
 import SbtOsgi._
 
 object BuildSettings {
-  val VERSION = "1.3.1"
+  val VERSION = "1.3.1-CPS-2"
+
+  val artifactoryHost = scala.util.Properties.envOrNone("ARTIFACTORY_HOST") getOrElse("")
+  val artifactoryPort = scala.util.Properties.envOrNone("ARTIFACTORY_PORT") getOrElse("")
+  val artifactoryPath = scala.util.Properties.envOrNone("ARTIFACTORY_PATH") getOrElse("")
+  val artifactoryUsername = scala.util.Properties.envOrNone("ARTIFACTORY_USERNAME") getOrElse("")
+  val artifactoryPassword = scala.util.Properties.envOrNone("ARTIFACTORY_PASSWORD") getOrElse("")
 
   lazy val basicSettings = seq(
     version               := NightlyBuildSupport.buildVersion(VERSION),
@@ -47,19 +53,8 @@ object BuildSettings {
       crossPaths := true,
       publishMavenStyle := true,
       SbtPgp.useGpg := true,
-      publishTo <<= version { version =>
-        Some {
-          if (version.contains("-") || true) { // sonatype publishing currently disabled
-            "spray nexus" at {
-              // public uri is repo.spray.io, we use an SSH tunnel to the nexus here
-              "http://localhost:42424/content/repositories/" + {
-                if (version.trim.endsWith("SNAPSHOT")) "snapshots/" else
-                if (NightlyBuildSupport.isNightly) "nightlies/" else "releases/"
-              }
-            }
-          } else "sonatype release staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-        }
-      },
+      publishTo := Some("Artifactory Realm" at "http://"+artifactoryHost+":"+artifactoryPort+artifactoryPath),
+      credentials := Seq(Credentials("Artifactory Realm", artifactoryHost, artifactoryUsername, artifactoryPassword)),
       pomIncludeRepository := { _ => false },
       pomExtra :=
         <scm>
